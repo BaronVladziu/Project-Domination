@@ -27,6 +27,7 @@ class Window extends JFrame {
     }
 
     void loop() {
+        _map.update();
         _drawPanel.repaint();
     }
 

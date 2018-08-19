@@ -9,7 +9,7 @@ public class Planet {
     private final static int _MIN_SIZE = 1;
     private final static int _MAX_SIZE = 10;
     private final static int _FIGHT_SCALING_FACTOR = 5;
-    private final static int _PLANET_SIZE_FACTOR = 5;
+    private final static int _PLANET_SIZE_FACTOR = 4;
     private final static int _PLANET_SIZE_CONSTANT = 30;
     private final static int _MAX_PLANET_SIZE = _MAX_SIZE*_PLANET_SIZE_FACTOR + _PLANET_SIZE_CONSTANT;
 
@@ -41,12 +41,15 @@ public class Planet {
     void setShips(int playerId, int ships) { this._shipsByPlayer[playerId] = ships; }
     final float getX() { return this._shape.x; }
     final float getY() { return this._shape.y; }
-    void move(float x, float y) {
+
+    boolean move(float x, float y) {
         if (_shape.x + x > _MAX_PLANET_SIZE && _shape.x + x < this._MAP_WIDTH - _MAX_PLANET_SIZE &&
                 _shape.y + y > _MAX_PLANET_SIZE && _shape.y + y < this._MAP_HEIGHT - _MAX_PLANET_SIZE) {
             _shape.x += x;
             _shape.y += y;
+            return true;
         }
+        return false;
     }
 
     void randomize(Random generator) {
@@ -60,10 +63,17 @@ public class Planet {
         }
     }
 
-    void executeFight() {
+    void update() {
+        //Execute fights
         int sum = 0;
-        for (int v : this._shipsByPlayer) {
-            sum += v;
+        int numberOfFightingPlayers = 0;
+        int lastFightingPlayer = -1;
+        for (int i = 0; i < this._shipsByPlayer.length; i++) {
+            if (this._shipsByPlayer[i] > 0) {
+                sum += this._shipsByPlayer[i];
+                numberOfFightingPlayers++;
+                lastFightingPlayer = i;
+            }
         }
         for (int i = 0; i < this._shipsByPlayer.length; i++) {
             int act = this._shipsByPlayer[i];
@@ -73,6 +83,14 @@ public class Planet {
             } else {
                 this._shipsByPlayer[i] = 0;
             }
+        }
+        //Update owner
+        if (numberOfFightingPlayers == 1) {
+            this._owner = lastFightingPlayer;
+        }
+        //Spawn new ships
+        if (this._owner >= 0) {
+            this._shipsByPlayer[this._owner] += this._size;
         }
     }
 
