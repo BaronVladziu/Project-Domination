@@ -1,5 +1,7 @@
 package map;
 
+import drawing.PlayerColors;
+
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -134,10 +136,7 @@ public class Map {
     }
 
     private boolean ifCollide(int a, int b, float[][] distances) {
-        if (distances[a][b] < this._vertices[a].getPlanetSize() + this._vertices[b].getPlanetSize()) {
-            return true;
-        }
-        return false;
+        return distances[a][b] < this._vertices[a].getPlanetSize() + this._vertices[b].getPlanetSize();
     }
 
     private float[][] calculateVertexDistances() {
@@ -263,7 +262,7 @@ public class Map {
         }
     }
 
-    public void draw(Graphics g) {
+    public void draw(Graphics g, PlayerColors playerColors) {
         g.setColor(Color.WHITE);
         for (int i = 0; i < this._edges.length; i++) {
             for (int j = i; j < this._edges[i].length; j++) {
@@ -272,8 +271,9 @@ public class Map {
                 }
             }
         }
+        int actColor = 0;
         for (Planet vertex : this._vertices) {
-            g.setColor(Color.WHITE); //TODO
+            g.setColor(playerColors.getColor(vertex.getOwner()));
             vertex.draw(g);
         }
     }
