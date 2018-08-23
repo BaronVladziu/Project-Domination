@@ -121,7 +121,6 @@ public class Planet {
 
     public void moveShip(Ship ship, Planet destination) {
         this._shipsByPlayer.get(ship.getOwner()).remove(ship);
-        destination.addShip(ship);
     }
 
     void draw(Graphics g) {

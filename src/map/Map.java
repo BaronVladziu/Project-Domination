@@ -12,7 +12,7 @@ public class Map {
 
     private final static int _NUMBER_OF_VERTICES = 30;
     private final static int _NUMBER_OF_PLAYERS = 3;
-    private final static float _UNIT_TUNNEL_LENGTH = 10.f;
+    private final static float _UNIT_TUNNEL_LENGTH = 4.f;
     private final static Random _GENERATOR = new Random();
     private final static int _MAX_DENSITY_REDUCTION_ITERATIONS = 100000;
     private final static float _GRAVITY_STRENGTH = 0.01f;
