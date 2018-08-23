@@ -1,18 +1,27 @@
 package map;
 
+import java.util.ArrayList;
+
 public class Tunnel {
 
     private int _length;
+    private ArrayList<Ship> _ships = new ArrayList<>();
+    private final Planet _source;
+    private final Planet _destination;
 
-    Tunnel(int length) {
+    Tunnel(int length, Planet source, Planet destination) {
         this._length = length;
+        this._source = source;
+        this._destination = destination;
     }
 
-    final int getLength() { return this._length; }
-    void setLength(int length) { this._length = length; }
+    public final int getLength() { return this._length; }
+    public final Planet getSource() { return this._source; }
+    public final Planet getDestination() { return this._destination; }
 
-    void update() {
-        //TODO
+    public void moveShip(Ship ship) {
+        this._ships.remove(ship);
+        this._destination.addShip(ship);
     }
 
 }

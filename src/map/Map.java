@@ -6,6 +6,7 @@ import java.awt.*;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Random;
+import java.util.Vector;
 
 public class Map {
 
@@ -21,6 +22,7 @@ public class Map {
 
     private Tunnel[][] _edges = new Tunnel[_NUMBER_OF_VERTICES][_NUMBER_OF_VERTICES];
     private Planet[] _vertices = new Planet[_NUMBER_OF_VERTICES];
+    private Vector<Ship> _ships = new Vector<>();
 
     public Map (int mapWidth, int mapHeight) {
         this._MAP_WIDTH = mapWidth;
@@ -28,7 +30,7 @@ public class Map {
         for (int i = 0; i < this._edges.length; i++) {
             for (int j = 0; j < this._edges[i].length; j++) {
                 if (j > i) {
-                    this._edges[i][j] = new Tunnel(1);
+                    this._edges[i][j] = new Tunnel(1, this._vertices[i], this._vertices[j]);
                 } else if (i > j){
                     this._edges[i][j] = this._edges[j][i];
                 }
@@ -82,6 +84,19 @@ public class Map {
         if (it == _MAX_DENSITY_REDUCTION_ITERATIONS) {
             System.out.println("Error: Could not prevent planet collisions!");
         }
+        //Give every AI random planet
+        int[] homeworlds = new int[_NUMBER_OF_VERTICES];
+        for (int i = 0; i < _NUMBER_OF_VERTICES; i++) {
+            homeworlds[i] = -1;
+        }
+        int planet;
+        for (int playerID = 0; playerID < _NUMBER_OF_PLAYERS; playerID++) {
+            do {
+                planet = _GENERATOR.nextInt(_NUMBER_OF_VERTICES);
+            } while (homeworlds[planet] != -1);
+            homeworlds[planet] = playerID;
+            this._vertices[planet].setOwner(playerID);
+        }
         //Create edges
         ArrayList<Edge> edgesForSorting = new ArrayList<>();
         for (int i = 0; i < _NUMBER_OF_VERTICES - 1; i++) {
@@ -98,8 +113,10 @@ public class Map {
         int numberOfZeros = 1;
 
         for (Edge e : edgesForSorting) { //Minimum spanning tree-like
-            this._edges[e._vertex1][e._vertex2] = new Tunnel((int)(e._length / _UNIT_TUNNEL_LENGTH));
-            this._edges[e._vertex2][e._vertex1] = new Tunnel((int)(e._length / _UNIT_TUNNEL_LENGTH));
+            this._edges[e._vertex1][e._vertex2] = new Tunnel((int)(e._length / _UNIT_TUNNEL_LENGTH),
+                    this._vertices[e._vertex1], this._vertices[e._vertex2]);
+            this._edges[e._vertex2][e._vertex1] = new Tunnel((int)(e._length / _UNIT_TUNNEL_LENGTH),
+                    this._vertices[e._vertex2], this._vertices[e._vertex1]);
             int lowerSubgraphID, higherSubgraphID;
             if (subgraphIDs[e._vertex1] <= subgraphIDs[e._vertex2]) {
                 lowerSubgraphID = subgraphIDs[e._vertex1];
@@ -119,6 +136,26 @@ public class Map {
             if (numberOfZeros >= _NUMBER_OF_VERTICES) {
                 break;
             }
+        }
+        //Connect planets
+        for (int i = 0; i < this._vertices.length; i++) {
+            //Count tunnels
+            int number_of_tunnels = 0;
+            for (int j = 0; j < this._edges[i].length; j++) {
+                if (this._edges[i][j] != null) {
+                    number_of_tunnels++;
+                }
+            }
+            //Create array of tunnels
+            Tunnel[] tunnels_from_act_planet = new Tunnel[number_of_tunnels];
+            int act_tunnel = 0;
+            for (int j = 0; j < this._edges[i].length; j++) {
+                if (this._edges[i][j] != null) {
+                    tunnels_from_act_planet[act_tunnel] = this._edges[i][j];
+                    act_tunnel++;
+                }
+            }
+            this._vertices[i].setTunnels(tunnels_from_act_planet);
         }
     }
 
@@ -160,7 +197,8 @@ public class Map {
             if (i != vertexID) {
                 float rx = this._vertices[i].getX() - this._vertices[vertexID].getX();
                 float ry = this._vertices[i].getY() - this._vertices[vertexID].getY();
-                float force = _GRAVITY_STRENGTH * this._vertices[i].getPlanetSize() / (distances[i][vertexID]*distances[i][vertexID]*distances[i][vertexID]);
+                float force = _GRAVITY_STRENGTH * this._vertices[i].getPlanetSize() /
+                        (distances[i][vertexID]*distances[i][vertexID]*distances[i][vertexID]);
                 x += rx * force;
                 y += ry * force;
             }
@@ -199,7 +237,8 @@ public class Map {
         int actSubgraphID = 0;
         int visitedVerticesCounter = 0;
         while (visitedVerticesCounter < _NUMBER_OF_VERTICES) {
-            visitedVerticesCounter = depthFirstSearch(subgraphIDs, actSubgraphID, actSubgraphID, visitedVerticesCounter);
+            visitedVerticesCounter = depthFirstSearch(subgraphIDs, actSubgraphID, actSubgraphID,
+                    visitedVerticesCounter);
             actSubgraphID++;
         }
 
@@ -209,8 +248,6 @@ public class Map {
             System.out.print('\t');
         }
         System.out.print('\n');
-
-
     }
 
     private int depthFirstSearch(int[] subgraphIDs, int verticeID, int actSubgraphID, int visitedVerticesCounter) {
@@ -227,16 +264,20 @@ public class Map {
     }
 
     public void update() {
-        for (int i = 0; i < this._edges.length; i++) {
-            for (int j = i; j < this._edges[i].length; j++) {
-                if (this._edges[i][j] != null) {
-                    this._edges[i][j].update();
-                }
-            }
+        //Update ships
+        for (Ship ship : this._ships) {
+            ship.update(_GENERATOR);
         }
+        //Update planets
         for (Planet vertex : this._vertices) {
-            vertex.update();
+            vertex.update(this._ships);
         }
+        //Logs
+        for (Planet vertex : this._vertices) {
+            System.out.print(vertex.getNumberOfShips());
+            System.out.print('\t');
+        }
+        System.out.print('\n');
     }
 
     public void print() {
@@ -263,18 +304,25 @@ public class Map {
     }
 
     public void draw(Graphics g, PlayerColors playerColors) {
+        //Draw tunnels
         g.setColor(Color.WHITE);
         for (int i = 0; i < this._edges.length; i++) {
             for (int j = i; j < this._edges[i].length; j++) {
                 if (this._edges[i][j] != null) {
-                    g.drawLine((int)this._vertices[i].getX(), (int)this._vertices[i].getY(), (int)this._vertices[j].getX(), (int)this._vertices[j].getY());
+                    g.drawLine((int)this._vertices[i].getX(), (int)this._vertices[i].getY(),
+                            (int)this._vertices[j].getX(), (int)this._vertices[j].getY());
                 }
             }
         }
-        int actColor = 0;
+        //Draw planets
         for (Planet vertex : this._vertices) {
             g.setColor(playerColors.getColor(vertex.getOwner()));
             vertex.draw(g);
+        }
+        //Draw ships
+        for (int i = 0; i < this._ships.size(); i++) {
+            Ship ship = this._ships.get(i);
+            ship.draw(g, playerColors.getColor((ship.getOwner())), _GENERATOR);
         }
     }
 

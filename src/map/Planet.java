@@ -2,13 +2,15 @@ package map;
 
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
+import java.util.ArrayList;
 import java.util.Random;
+import java.util.Vector;
 
 public class Planet {
 
     private final static int _MIN_SIZE = 1;
     private final static int _MAX_SIZE = 10;
-    private final static int _FIGHT_SCALING_FACTOR = 5;
+    private final static int _FIGHT_SCALING_FACTOR = 20;
     private final static int _PLANET_SIZE_FACTOR = 4;
     private final static int _PLANET_SIZE_CONSTANT = 30;
     private final static int _MAX_PLANET_SIZE = _MAX_SIZE*_PLANET_SIZE_FACTOR + _PLANET_SIZE_CONSTANT;
@@ -17,19 +19,28 @@ public class Planet {
     private final int _MAP_HEIGHT;
 
     private int _size;
-    private Ellipse2D.Float _shape = new Ellipse2D.Float(0,0,_size,_size);
+    private Ellipse2D.Float _shape = new Ellipse2D.Float(0,0,
+            this._size * _PLANET_SIZE_FACTOR + _PLANET_SIZE_CONSTANT,
+            this._size * _PLANET_SIZE_FACTOR + _PLANET_SIZE_CONSTANT);
     private int _owner = -1;
-    private int[] _shipsByPlayer;
+    private Tunnel[] _tunnels;
+    private Vector<ArrayList<Ship>> _shipsByPlayer;
 
     Planet(int numberOfPlayers, int mapWidth, int mapHeight) {
         this._MAP_WIDTH = mapWidth;
         this._MAP_HEIGHT = mapHeight;
         this._size = 0;
-        this._shipsByPlayer = new int[numberOfPlayers];
+        this._shipsByPlayer = new Vector<>();
+        for (int i = 0; i < numberOfPlayers; i++) {
+            this._shipsByPlayer.add(new ArrayList<>());
+        }
+    }
+    void setTunnels(Tunnel[] tunnels) {
+        this._tunnels = tunnels;
     }
 
     final int getSize() { return this._size; }
-    void setSize(int size) {
+    private void setSize(int size) {
         this._size = size;
         this._shape.height = this._size * _PLANET_SIZE_FACTOR + _PLANET_SIZE_CONSTANT;
         this._shape.width = this._size * _PLANET_SIZE_FACTOR + _PLANET_SIZE_CONSTANT;
@@ -37,10 +48,18 @@ public class Planet {
     final float getPlanetSize() { return this._shape.height; }
     final int getOwner() { return this._owner; }
     void setOwner(int owner) { this._owner = owner; }
-    final int[] getShipsByPlayer() { return this._shipsByPlayer; }
-    void setShips(int playerId, int ships) { this._shipsByPlayer[playerId] = ships; }
     final float getX() { return this._shape.x; }
     final float getY() { return this._shape.y; }
+    final float getRadius() { return this._shape.height; }
+    final Tunnel getTunnel(int tunnel) { return this._tunnels[tunnel]; }
+    final int getNumberOfTunnels() { return this._tunnels.length; }
+    final int getNumberOfShips() {
+        int number_of_ships = 0;
+        for (ArrayList<Ship> ships : this._shipsByPlayer) {
+            number_of_ships += ships.size();
+        }
+        return number_of_ships;
+    }
 
     boolean move(float x, float y) {
         if (_shape.x + x > _MAX_PLANET_SIZE && _shape.x + x < this._MAP_WIDTH - _MAX_PLANET_SIZE &&
@@ -58,30 +77,29 @@ public class Planet {
         this._shape.width = this._size * _PLANET_SIZE_FACTOR + _PLANET_SIZE_CONSTANT;
         this._shape.x = generator.nextFloat() * (this._MAP_WIDTH - 2*_MAX_PLANET_SIZE) + _MAX_PLANET_SIZE;
         this._shape.y = generator.nextFloat() * (this._MAP_HEIGHT - 2*_MAX_PLANET_SIZE) + _MAX_PLANET_SIZE;
-        for (int i = 0; i < this._shipsByPlayer.length; i++) {
-            this._shipsByPlayer[i] = 0;
-        }
     }
 
-    void update() {
+    void update(Vector<Ship> ships) {
         //Execute fights
         int sum = 0;
         int numberOfFightingPlayers = 0;
         int lastFightingPlayer = -1;
-        for (int i = 0; i < this._shipsByPlayer.length; i++) {
-            if (this._shipsByPlayer[i] > 0) {
-                sum += this._shipsByPlayer[i];
+        for (int i = 0; i < this._shipsByPlayer.size(); i++) {
+            if (this._shipsByPlayer.get(i).size() > 0) {
+                sum += this._shipsByPlayer.get(i).size();
                 numberOfFightingPlayers++;
                 lastFightingPlayer = i;
             }
         }
-        for (int i = 0; i < this._shipsByPlayer.length; i++) {
-            int act = this._shipsByPlayer[i];
+        for (int i = 0; i < this._shipsByPlayer.size(); i++) {
+            int act = this._shipsByPlayer.get(i).size();
             int killed = (sum - act) / _FIGHT_SCALING_FACTOR + 1;
             if (act - killed >= 0) {
-                this._shipsByPlayer[i] = act - killed;
+                for (int k = 0; k < killed; k++) {
+                    this._shipsByPlayer.get(i).remove(0); //remove first ship
+                }
             } else {
-                this._shipsByPlayer[i] = 0;
+                this._shipsByPlayer.get(i).clear();
             }
         }
         //Update owner
@@ -90,8 +108,20 @@ public class Planet {
         }
         //Spawn new ships
         if (this._owner >= 0) {
-            this._shipsByPlayer[this._owner] += this._size;
+            for (int s = 0; s < this._size; s++) {
+                ships.add(new Ship(this._owner, this));
+                this._shipsByPlayer.get(this._owner).add(ships.get(ships.size() - 1));
+            }
         }
+    }
+
+    void addShip(Ship ship) {
+        this._shipsByPlayer.get(ship.getOwner()).add(ship);
+    }
+
+    public void moveShip(Ship ship, Planet destination) {
+        this._shipsByPlayer.get(ship.getOwner()).remove(ship);
+        destination.addShip(ship);
     }
 
     void draw(Graphics g) {

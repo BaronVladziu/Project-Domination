@@ -30,7 +30,7 @@ public class PlayerColors {
 
     public Color getColor(int playerID) {
         if (playerID >= _MAX_PLAYER_COLOR_ID) {
-            System.out.println("Warning: Exceeded max player color ID!");
+            System.out.println("Warning: Exceeded max AI color ID!");
             return Color.WHITE;
         } else if (playerID < 0) {
             return Color.WHITE;
