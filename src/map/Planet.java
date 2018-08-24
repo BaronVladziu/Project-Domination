@@ -8,11 +8,11 @@ import java.util.Vector;
 
 public class Planet {
 
-    private final static int _MIN_SIZE = 1;
-    private final static int _MAX_SIZE = 10;
+    private final static int _MIN_SIZE = 3;
+    private final static int _MAX_SIZE = 6;
     private final static int _FIGHT_SCALING_FACTOR = 20;
-    private final static int _PLANET_SIZE_FACTOR = 4;
-    private final static int _PLANET_SIZE_CONSTANT = 30;
+    private final static int _PLANET_SIZE_FACTOR = 8;
+    private final static int _PLANET_SIZE_CONSTANT = 20;
     private final static int _MAX_PLANET_SIZE = _MAX_SIZE*_PLANET_SIZE_FACTOR + _PLANET_SIZE_CONSTANT;
 
     private final int _MAP_WIDTH;
@@ -50,7 +50,7 @@ public class Planet {
     void setOwner(int owner) { this._owner = owner; }
     final float getX() { return this._shape.x; }
     final float getY() { return this._shape.y; }
-    final float getRadius() { return this._shape.height; }
+    final float getRadius() { return this._shape.height / 2; }
     final Tunnel getTunnel(int tunnel) { return this._tunnels[tunnel]; }
     final int getNumberOfTunnels() { return this._tunnels.length; }
     final int getNumberOfShips() {
@@ -96,7 +96,9 @@ public class Planet {
             int killed = (sum - act) / _FIGHT_SCALING_FACTOR + 1;
             if (act - killed >= 0) {
                 for (int k = 0; k < killed; k++) {
-                    this._shipsByPlayer.get(i).remove(0); //remove first ship
+                    Ship shipToKill = this._shipsByPlayer.get(i).get(0); //remove first ship
+                    this._shipsByPlayer.get(i).remove(0);
+                    ships.remove(shipToKill);
                 }
             } else {
                 this._shipsByPlayer.get(i).clear();
@@ -123,7 +125,7 @@ public class Planet {
         this._shipsByPlayer.get(ship.getOwner()).remove(ship);
     }
 
-    void draw(Graphics g) {
+    void draw(Graphics2D g) {
         g.drawOval((int)(this._shape.x - this._shape.width/2), (int)(this._shape.y - this._shape.height/2), (int)this._shape.width, (int)this._shape.height);
     }
 

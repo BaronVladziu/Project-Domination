@@ -303,7 +303,7 @@ public class Map {
         }
     }
 
-    public void draw(Graphics g, PlayerColors playerColors) {
+    public void draw(Graphics2D g, PlayerColors playerColors) {
         //Draw tunnels
         g.setColor(Color.WHITE);
         for (int i = 0; i < this._edges.length; i++) {

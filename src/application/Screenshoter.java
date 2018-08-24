@@ -7,7 +7,7 @@ import java.io.File;
 
 public class Screenshoter {
 
-    private final static int _MAX_NUMBER_OF_DIGITS_IN_SCREEN_NUMBER = 5;
+    private final static int _MAX_NUMBER_OF_DIGITS_IN_SCREEN_NUMBER = 9;
 
     private final int _screenX;
     private final int _screenY;
