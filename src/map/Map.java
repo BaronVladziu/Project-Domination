@@ -1,5 +1,6 @@
 package map;
 
+import AI.AI;
 import drawing.PlayerColors;
 
 import java.awt.*;
@@ -23,6 +24,7 @@ public class Map {
     private Tunnel[][] _edges = new Tunnel[_NUMBER_OF_VERTICES][_NUMBER_OF_VERTICES];
     private Planet[] _vertices = new Planet[_NUMBER_OF_VERTICES];
     private Vector<Ship> _ships = new Vector<>();
+    private AI _ai = new AI(_NUMBER_OF_PLAYERS);
 
     public Map (int mapWidth, int mapHeight) {
         this._MAP_WIDTH = mapWidth;
@@ -266,7 +268,7 @@ public class Map {
     public void update() {
         //Update ships
         for (Ship ship : this._ships) {
-            ship.update(_GENERATOR);
+            ship.update(_ai);
         }
         //Update planets
         for (Planet vertex : this._vertices) {

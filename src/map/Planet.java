@@ -10,7 +10,7 @@ public class Planet {
 
     private final static int _MIN_SIZE = 3;
     private final static int _MAX_SIZE = 6;
-    private final static int _FIGHT_SCALING_FACTOR = 20;
+    private final static int _FIGHT_SCALING_FACTOR = 5;
     private final static int _PLANET_SIZE_FACTOR = 8;
     private final static int _PLANET_SIZE_CONSTANT = 20;
     private final static int _MAX_PLANET_SIZE = _MAX_SIZE*_PLANET_SIZE_FACTOR + _PLANET_SIZE_CONSTANT;
@@ -39,26 +39,29 @@ public class Planet {
         this._tunnels = tunnels;
     }
 
-    final int getSize() { return this._size; }
+    public final int getSize() { return this._size; }
     private void setSize(int size) {
         this._size = size;
         this._shape.height = this._size * _PLANET_SIZE_FACTOR + _PLANET_SIZE_CONSTANT;
         this._shape.width = this._size * _PLANET_SIZE_FACTOR + _PLANET_SIZE_CONSTANT;
     }
     final float getPlanetSize() { return this._shape.height; }
-    final int getOwner() { return this._owner; }
+    public final int getOwner() { return this._owner; }
     void setOwner(int owner) { this._owner = owner; }
     final float getX() { return this._shape.x; }
     final float getY() { return this._shape.y; }
     final float getRadius() { return this._shape.height / 2; }
-    final Tunnel getTunnel(int tunnel) { return this._tunnels[tunnel]; }
-    final int getNumberOfTunnels() { return this._tunnels.length; }
-    final int getNumberOfShips() {
+    public final Tunnel getTunnel(int tunnel) { return this._tunnels[tunnel]; }
+    public final int getNumberOfTunnels() { return this._tunnels.length; }
+    public final int getNumberOfShips() {
         int number_of_ships = 0;
         for (ArrayList<Ship> ships : this._shipsByPlayer) {
             number_of_ships += ships.size();
         }
         return number_of_ships;
+    }
+    public final int getNumberOfShips(int playerID) {
+        return this._shipsByPlayer.get(playerID).size();
     }
 
     boolean move(float x, float y) {

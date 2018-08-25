@@ -1,5 +1,7 @@
 package map;
 
+import AI.AI;
+
 import java.awt.*;
 import java.awt.geom.*;
 import java.util.Random;
@@ -26,7 +28,7 @@ public class Ship {
     final int getDistanceInTunnel() { return this._distanceInTunnel; }
     public final int getOwner() { return this._owner; }
 
-    public void update(Random generator) {
+    public void update(final AI ai) {
         if (this._locationTunnel != null) {
             this._distanceInTunnel++;
             if (this._distanceInTunnel >= this._locationTunnel.getLength()) {
@@ -34,11 +36,13 @@ public class Ship {
                 this._locationTunnel = null;
             }
         } else {
-            int randomTunnel = generator.nextInt(this._locationPlanet.getNumberOfTunnels());
-            this._locationTunnel = this._locationPlanet.getTunnel(randomTunnel);
-            this._locationPlanet.moveShip(this, this._locationTunnel.getDestination());
-            this._distanceInTunnel = 0;
-            this._locationPlanet = this._locationTunnel.getDestination();
+            int chosenTunnel = ai.chooseTunnel(this._owner, this._locationPlanet);
+            if (chosenTunnel >= 0) {
+                this._locationTunnel = this._locationPlanet.getTunnel(chosenTunnel);
+                this._locationPlanet.moveShip(this, this._locationTunnel.getDestination());
+                this._distanceInTunnel = 0;
+                this._locationPlanet = this._locationTunnel.getDestination();
+            }
         }
     }
 
