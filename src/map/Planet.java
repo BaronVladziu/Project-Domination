@@ -1,8 +1,11 @@
 package map;
 
+import drawing.PlayerColors;
+
 import java.awt.*;
 import java.awt.geom.Ellipse2D;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Random;
 import java.util.Vector;
 
@@ -10,13 +13,14 @@ public class Planet {
 
     private final static int _MIN_SIZE = 3;
     private final static int _MAX_SIZE = 6;
-    private final static int _FIGHT_SCALING_FACTOR = 5;
-    private final static int _PLANET_SIZE_FACTOR = 8;
+    private final static int _FIGHT_SCALING_FACTOR = 20; //The lower the faster are fights
+    private final static int _PLANET_SIZE_FACTOR = 10;
     private final static int _PLANET_SIZE_CONSTANT = 20;
     private final static int _MAX_PLANET_SIZE = _MAX_SIZE*_PLANET_SIZE_FACTOR + _PLANET_SIZE_CONSTANT;
 
     private final int _MAP_WIDTH;
     private final int _MAP_HEIGHT;
+    private final Explosion _explosion = new Explosion(this);
 
     private int _size;
     private Ellipse2D.Float _shape = new Ellipse2D.Float(0,0,
@@ -25,6 +29,7 @@ public class Planet {
     private int _owner = -1;
     private Tunnel[] _tunnels;
     private Vector<ArrayList<Ship>> _shipsByPlayer;
+    private int _killedInLastFight = 0;
 
     Planet(int numberOfPlayers, int mapWidth, int mapHeight) {
         this._MAP_WIDTH = mapWidth;
@@ -40,16 +45,16 @@ public class Planet {
     }
 
     public final int getSize() { return this._size; }
-    private void setSize(int size) {
-        this._size = size;
-        this._shape.height = this._size * _PLANET_SIZE_FACTOR + _PLANET_SIZE_CONSTANT;
-        this._shape.width = this._size * _PLANET_SIZE_FACTOR + _PLANET_SIZE_CONSTANT;
-    }
+//    private void setSize(int size) {
+//        this._size = size;
+//        this._shape.height = this._size * _PLANET_SIZE_FACTOR + _PLANET_SIZE_CONSTANT;
+//        this._shape.width = this._size * _PLANET_SIZE_FACTOR + _PLANET_SIZE_CONSTANT;
+//    }
     final float getPlanetSize() { return this._shape.height; }
     public final int getOwner() { return this._owner; }
     void setOwner(int owner) { this._owner = owner; }
-    final float getX() { return this._shape.x; }
-    final float getY() { return this._shape.y; }
+    final float getX() { return this._shape.x + this._shape.width / 2; }
+    final float getY() { return this._shape.y + this._shape.height / 2; }
     final float getRadius() { return this._shape.height / 2; }
     public final Tunnel getTunnel(int tunnel) { return this._tunnels[tunnel]; }
     public final int getNumberOfTunnels() { return this._tunnels.length; }
@@ -78,8 +83,8 @@ public class Planet {
         this._size = generator.nextInt(_MAX_SIZE - _MIN_SIZE) + _MIN_SIZE;
         this._shape.height = this._size * _PLANET_SIZE_FACTOR + _PLANET_SIZE_CONSTANT;
         this._shape.width = this._size * _PLANET_SIZE_FACTOR + _PLANET_SIZE_CONSTANT;
-        this._shape.x = generator.nextFloat() * (this._MAP_WIDTH - 2*_MAX_PLANET_SIZE) + _MAX_PLANET_SIZE;
-        this._shape.y = generator.nextFloat() * (this._MAP_HEIGHT - 2*_MAX_PLANET_SIZE) + _MAX_PLANET_SIZE;
+        this._shape.x = generator.nextFloat() * (this._MAP_WIDTH - 2*_MAX_PLANET_SIZE) + _MAX_PLANET_SIZE - this._shape.width/2;
+        this._shape.y = generator.nextFloat() * (this._MAP_HEIGHT - 2*_MAX_PLANET_SIZE) + _MAX_PLANET_SIZE - this._shape.height/2;
     }
 
     void update(Vector<Ship> ships) {
@@ -96,7 +101,11 @@ public class Planet {
         }
         for (int i = 0; i < this._shipsByPlayer.size(); i++) {
             int act = this._shipsByPlayer.get(i).size();
-            int killed = (sum - act) / _FIGHT_SCALING_FACTOR + 1;
+            int killed = 0;
+            if (numberOfFightingPlayers >= 2) {
+                killed = (sum - act) / _FIGHT_SCALING_FACTOR + 1;
+            }
+            this._killedInLastFight = killed;
             if (act - killed >= 0) {
                 for (int k = 0; k < killed; k++) {
                     Ship shipToKill = this._shipsByPlayer.get(i).get(0); //remove first ship
@@ -104,6 +113,9 @@ public class Planet {
                     ships.remove(shipToKill);
                 }
             } else {
+                for (Ship ship : this._shipsByPlayer.get(i)) {
+                    ships.remove(ship);
+                }
                 this._shipsByPlayer.get(i).clear();
             }
         }
@@ -111,12 +123,10 @@ public class Planet {
         if (numberOfFightingPlayers == 1) {
             this._owner = lastFightingPlayer;
         }
-        //Spawn new ships
+        //Spawn new ship
         if (this._owner >= 0) {
-            for (int s = 0; s < this._size; s++) {
-                ships.add(new Ship(this._owner, this));
-                this._shipsByPlayer.get(this._owner).add(ships.get(ships.size() - 1));
-            }
+            ships.add(new Ship(this._owner, this));
+            this._shipsByPlayer.get(this._owner).add(ships.get(ships.size() - 1));
         }
     }
 
@@ -128,8 +138,37 @@ public class Planet {
         this._shipsByPlayer.get(ship.getOwner()).remove(ship);
     }
 
-    void draw(Graphics2D g) {
-        g.drawOval((int)(this._shape.x - this._shape.width/2), (int)(this._shape.y - this._shape.height/2), (int)this._shape.width, (int)this._shape.height);
+    void draw(Graphics2D g, PlayerColors playerColors, Random generator) {
+        //Draw planet
+        if (this._owner >= 0) {
+            //Count armies
+            Vector<Army> armies = new Vector<>();
+            int numberOfShips = 0;
+            for (int p = 0; p < this._shipsByPlayer.size(); p++) {
+                if (this._shipsByPlayer.get(p).size() > 0) {
+                    armies.add(new Army(p, this._shipsByPlayer.get(p).size()));
+                    numberOfShips += this._shipsByPlayer.get(p).size();
+                }
+            }
+            //Sort armies
+            Collections.sort(armies);
+            //Draw armies
+            float actRadius = this._shape.width / 2;
+            for (Army army : armies) {
+                Color normal = playerColors.getColor(army._owner);
+                Color transparent = new Color(normal.getRed(), normal.getGreen(), normal.getBlue(), 100);
+                g.setColor(transparent);
+                g.fill(new Ellipse2D.Float(this.getX() - actRadius, this.getY() - actRadius, 2*actRadius, 2*actRadius));
+                actRadius -= this._shape.width / 2 * army._numberOfShips / numberOfShips;
+            }
+        }
+        //Draw planet outline
+        g.setColor(playerColors.getColor(this._owner));
+        g.draw(_shape);
+        //Draw explosions
+        for (int i = 0; i < this._killedInLastFight; i++) {
+            _explosion.draw(g, generator);
+        }
     }
 
 }

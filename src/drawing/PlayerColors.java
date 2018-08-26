@@ -5,9 +5,9 @@ import java.awt.*;
 public class PlayerColors {
 
 //    private final static int _MAX_PLAYER_COLOR_ID = 44;
-    private final static int _MAX_PLAYER_COLOR_ID = 3;
-    private final static int _NUMBER_OF_COLOR_STATES = 4;
-    private final static int _MIN_COLOR_SUM = 3;
+    private final static int _MAX_PLAYER_COLOR_ID = 6;
+//    private final static int _NUMBER_OF_COLOR_STATES = 4;
+//    private final static int _MIN_COLOR_SUM = 3;
 
     private Color[] _colors = new Color[_MAX_PLAYER_COLOR_ID];
 
@@ -29,6 +29,9 @@ public class PlayerColors {
         this._colors[0] = Color.RED;
         this._colors[1] = Color.GREEN;
         this._colors[2] = Color.BLUE;
+        this._colors[3] = Color.YELLOW;
+        this._colors[4] = Color.CYAN;
+        this._colors[5] = Color.MAGENTA;
     }
 
     public Color getColor(int playerID) {

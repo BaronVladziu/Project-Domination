@@ -4,8 +4,8 @@ import map.Planet;
 
 public class Player {
 
-    private final static int _NUMBER_OF_LAYERS = 3;
-    private final static int _NUMBER_OF_GENES_IN_LAYER = 4;
+    private final static int _NUMBER_OF_LAYERS = 10;
+    private final static int _NUMBER_OF_GENES_IN_LAYER = 3;
 
     private DNA _dna;
     private NeuralNetwork _neuralNetwork;
@@ -31,14 +31,13 @@ public class Player {
 
     private float[] createNetworkInput(int playerID, Planet planet) {
         float[] neuralNetworkInput = new float[_NUMBER_OF_GENES_IN_LAYER];
-        neuralNetworkInput[0] = planet.getSize();
         if (planet.getOwner() == playerID) {
-            neuralNetworkInput[1] = 1;
+            neuralNetworkInput[0] = 1;
         } else {
-            neuralNetworkInput[1] = -1;
+            neuralNetworkInput[0] = -1;
         }
-        neuralNetworkInput[2] = planet.getNumberOfShips(playerID);
-        neuralNetworkInput[3] = planet.getNumberOfShips() - neuralNetworkInput[2];
+        neuralNetworkInput[1] = planet.getNumberOfShips(playerID);
+        neuralNetworkInput[2] = planet.getNumberOfShips() - neuralNetworkInput[2];
         return neuralNetworkInput;
     }
 

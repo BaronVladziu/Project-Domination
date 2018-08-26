@@ -10,8 +10,9 @@ import static java.lang.Math.PI;
 
 public class Ship {
 
-    private final static float _FLIGHT_HEIGHT = 3.f;
-    private final static float _SHIP_RADIUS = 1.2f;
+    private final static float _PLANET_FLIGHT_HEIGHT = 5.f;
+    private final static float _TUNNEL_FLIGHT_HEIGHT = 2.f;
+    private final static float _SHIP_RADIUS = 1.4f;
 
     Planet _locationPlanet;
     Tunnel _locationTunnel;
@@ -52,7 +53,7 @@ public class Ship {
         float x = (float)Math.cos(angle);
         float y = (float)Math.sin(angle);
         if (this._locationTunnel != null) {
-            float radius = _FLIGHT_HEIGHT;
+            float radius = _TUNNEL_FLIGHT_HEIGHT;
             x *= radius;
             y *= radius;
 
@@ -60,11 +61,11 @@ public class Ship {
             float fullTunnelY = this._locationTunnel.getDestination().getY() - this._locationTunnel.getSource().getY();
             float fullTunnelLength = (float)Math.sqrt(Math.pow(fullTunnelX, 2) + Math.pow(fullTunnelY, 2));
 
-            float sourcePlanetByTunnelFraction = (this._locationTunnel.getSource().getRadius() + _FLIGHT_HEIGHT) / fullTunnelLength;
+            float sourcePlanetByTunnelFraction = (this._locationTunnel.getSource().getRadius() + _TUNNEL_FLIGHT_HEIGHT) / fullTunnelLength;
             float sourcePlanetX = fullTunnelX * sourcePlanetByTunnelFraction;
             float sourcePlanetY = fullTunnelY * sourcePlanetByTunnelFraction;
 
-            float destinationPlanetByTunnelFraction = (this._locationTunnel.getDestination().getRadius() + _FLIGHT_HEIGHT) / fullTunnelLength;
+            float destinationPlanetByTunnelFraction = (this._locationTunnel.getDestination().getRadius() + _TUNNEL_FLIGHT_HEIGHT) / fullTunnelLength;
             float destinationPlanetX = fullTunnelX * destinationPlanetByTunnelFraction;
             float destinationPlanetY = fullTunnelY * destinationPlanetByTunnelFraction;
 
@@ -75,7 +76,7 @@ public class Ship {
             x += this._locationTunnel.getSource().getX() + sourcePlanetX + (tunnelX * flown_fraction);
             y += this._locationTunnel.getSource().getY() + sourcePlanetY + (tunnelY * flown_fraction);
         } else {
-            float radius = _FLIGHT_HEIGHT + (this._locationPlanet.getRadius());
+            float radius = _PLANET_FLIGHT_HEIGHT + (this._locationPlanet.getRadius());
             x *= radius;
             y *= radius;
             x += this._locationPlanet.getX();

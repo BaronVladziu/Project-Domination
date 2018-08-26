@@ -11,12 +11,13 @@ import java.util.Vector;
 
 public class Map {
 
-    private final static int _NUMBER_OF_VERTICES = 30;
-    private final static int _NUMBER_OF_PLAYERS = 3;
+    private final static int _NUMBER_OF_VERTICES = 45;
+    private final static int _NUMBER_OF_PLAYERS = 6;
     private final static float _UNIT_TUNNEL_LENGTH = 4.f;
     private final static Random _GENERATOR = new Random();
     private final static int _MAX_DENSITY_REDUCTION_ITERATIONS = 100000;
     private final static float _GRAVITY_STRENGTH = 0.01f;
+    private final static int _MAX_NUMBER_OF_TURNS = 700;
 
     private final int _MAP_WIDTH;
     private final int _MAP_HEIGHT;
@@ -25,6 +26,7 @@ public class Map {
     private Planet[] _vertices = new Planet[_NUMBER_OF_VERTICES];
     private Vector<Ship> _ships = new Vector<>();
     private AI _ai = new AI(_NUMBER_OF_PLAYERS);
+    private int _numberOfPassedTurns;
 
     public Map (int mapWidth, int mapHeight) {
         this._MAP_WIDTH = mapWidth;
@@ -47,6 +49,7 @@ public class Map {
     final Planet getVertex(int id) { return this._vertices[id]; }
 
     public void randomize() {
+        this._numberOfPassedTurns = 0;
         //Null edges
         for (int i = 0; i < this._edges.length; i++) {
             for (int j = 0; j < this._edges[i].length; j++) {
@@ -61,31 +64,34 @@ public class Map {
         float[][] distances = calculateVertexDistances();
         int it = 0;
         boolean ifAnyCollision = true;
-        while (ifAnyCollision && it < _MAX_DENSITY_REDUCTION_ITERATIONS) {
-            ifAnyCollision = false;
-            for (int i = 0; i < _NUMBER_OF_VERTICES - 1; i++) {
-                for (int j = i + 1; j < _NUMBER_OF_VERTICES; j++) {
-                    if (this.ifCollide(i, j, distances)) {
-                        float rx = this._vertices[i].getX() - this._vertices[j].getX();
-                        float ry = this._vertices[i].getY() - this._vertices[j].getY();
-                        float force = _GRAVITY_STRENGTH * this._vertices[i].getPlanetSize();
-                        float x = rx * force;
-                        float y = ry * force;
-                        if (!this._vertices[i].move(x, y) && !this._vertices[j].move(-x, -y)) {
-                            this._vertices[i].randomize(_GENERATOR);
-                            this._vertices[j].randomize(_GENERATOR);
-                            System.out.println("Planet changed");
+        do {
+            it = 0;
+            while (ifAnyCollision && it < _MAX_DENSITY_REDUCTION_ITERATIONS) {
+                ifAnyCollision = false;
+                for (int i = 0; i < _NUMBER_OF_VERTICES - 1; i++) {
+                    for (int j = i + 1; j < _NUMBER_OF_VERTICES; j++) {
+                        if (this.ifCollide(i, j, distances)) {
+                            float rx = this._vertices[i].getX() - this._vertices[j].getX();
+                            float ry = this._vertices[i].getY() - this._vertices[j].getY();
+                            float force = _GRAVITY_STRENGTH * this._vertices[i].getPlanetSize();
+                            float x = rx * force;
+                            float y = ry * force;
+                            if (!this._vertices[i].move(x, y) && !this._vertices[j].move(-x, -y)) {
+                                this._vertices[i].randomize(_GENERATOR);
+                                this._vertices[j].randomize(_GENERATOR);
+                                System.out.println("Planet changed");
+                            }
+                            ifAnyCollision = true;
                         }
-                        ifAnyCollision = true;
                     }
                 }
+                distances = calculateVertexDistances();
+                it++;
             }
-            distances = calculateVertexDistances();
-            it++;
-        }
-        if (it == _MAX_DENSITY_REDUCTION_ITERATIONS) {
-            System.out.println("Error: Could not prevent planet collisions!");
-        }
+            if (it == _MAX_DENSITY_REDUCTION_ITERATIONS) {
+                System.out.println("Warning: Could not prevent planet collisions. Trying again.");
+            }
+        } while (it == _MAX_DENSITY_REDUCTION_ITERATIONS);
         //Give every AI random planet
         int[] homeworlds = new int[_NUMBER_OF_VERTICES];
         for (int i = 0; i < _NUMBER_OF_VERTICES; i++) {
@@ -266,20 +272,25 @@ public class Map {
     }
 
     public void update() {
-        //Update ships
-        for (Ship ship : this._ships) {
-            ship.update(_ai);
+        if (this._numberOfPassedTurns < _MAX_NUMBER_OF_TURNS) {
+            this._numberOfPassedTurns++;
+            //Update ships
+            for (Ship ship : this._ships) {
+                ship.update(_ai);
+            }
+            //Update planets
+            for (Planet vertex : this._vertices) {
+                vertex.update(this._ships);
+            }
+            //Logs
+            for (Planet vertex : this._vertices) {
+                System.out.print(vertex.getNumberOfShips());
+                System.out.print('\t');
+            }
+            System.out.print('\n');
+        } else {
+            System.out.println("--- Game ended ---");
         }
-        //Update planets
-        for (Planet vertex : this._vertices) {
-            vertex.update(this._ships);
-        }
-        //Logs
-        for (Planet vertex : this._vertices) {
-            System.out.print(vertex.getNumberOfShips());
-            System.out.print('\t');
-        }
-        System.out.print('\n');
     }
 
     public void print() {
@@ -316,15 +327,14 @@ public class Map {
                 }
             }
         }
-        //Draw planets
-        for (Planet vertex : this._vertices) {
-            g.setColor(playerColors.getColor(vertex.getOwner()));
-            vertex.draw(g);
-        }
         //Draw ships
         for (int i = 0; i < this._ships.size(); i++) {
             Ship ship = this._ships.get(i);
             ship.draw(g, playerColors.getColor((ship.getOwner())), _GENERATOR);
+        }
+        //Draw planets
+        for (Planet vertex : this._vertices) {
+            vertex.draw(g, playerColors, _GENERATOR);
         }
     }
 
