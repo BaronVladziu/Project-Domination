@@ -14,9 +14,10 @@ public class Planet {
     private final static int _MIN_SIZE = 3;
     private final static int _MAX_SIZE = 6;
     private final static int _FIGHT_SCALING_FACTOR = 20; //The lower the faster are fights
-    private final static int _PLANET_SIZE_FACTOR = 10;
-    private final static int _PLANET_SIZE_CONSTANT = 20;
-    private final static int _MAX_PLANET_SIZE = _MAX_SIZE*_PLANET_SIZE_FACTOR + _PLANET_SIZE_CONSTANT;
+    private final static int _PLANET_SIZE_FACTOR = 5;
+    private final static int _PLANET_SIZE_CONSTANT = 15;
+
+    final static int _MAX_PLANET_SIZE = _MAX_SIZE*_PLANET_SIZE_FACTOR + _PLANET_SIZE_CONSTANT;
 
     private final int _MAP_WIDTH;
     private final int _MAP_HEIGHT;
@@ -69,6 +70,10 @@ public class Planet {
         return this._shipsByPlayer.get(playerID).size();
     }
 
+    void setPosition(float x, float y) {
+        _shape.x = x;
+        _shape.y = y;
+    }
     boolean move(float x, float y) {
         if (_shape.x + x > _MAX_PLANET_SIZE && _shape.x + x < this._MAP_WIDTH - _MAX_PLANET_SIZE &&
                 _shape.y + y > _MAX_PLANET_SIZE && _shape.y + y < this._MAP_HEIGHT - _MAX_PLANET_SIZE) {
@@ -80,7 +85,11 @@ public class Planet {
     }
 
     void randomize(Random generator) {
-        this._size = generator.nextInt(_MAX_SIZE - _MIN_SIZE) + _MIN_SIZE;
+        if (_MAX_SIZE > _MIN_SIZE) {
+            this._size = generator.nextInt(_MAX_SIZE - _MIN_SIZE) + _MIN_SIZE;
+        } else {
+            this._size = _MAX_SIZE;
+        }
         this._shape.height = this._size * _PLANET_SIZE_FACTOR + _PLANET_SIZE_CONSTANT;
         this._shape.width = this._size * _PLANET_SIZE_FACTOR + _PLANET_SIZE_CONSTANT;
         this._shape.x = generator.nextFloat() * (this._MAP_WIDTH - 2*_MAX_PLANET_SIZE) + _MAX_PLANET_SIZE - this._shape.width/2;
@@ -144,14 +153,20 @@ public class Planet {
             //Count armies
             Vector<Army> armies = new Vector<>();
             int numberOfShips = 0;
+            int numberOfOwnerShips = 0;
             for (int p = 0; p < this._shipsByPlayer.size(); p++) {
                 if (this._shipsByPlayer.get(p).size() > 0) {
-                    armies.add(new Army(p, this._shipsByPlayer.get(p).size()));
+                    if (p == this._owner) {
+                        numberOfOwnerShips = this._shipsByPlayer.get(p).size();
+                    } else {
+                        armies.add(new Army(p, this._shipsByPlayer.get(p).size()));
+                    }
                     numberOfShips += this._shipsByPlayer.get(p).size();
                 }
             }
             //Sort armies
             Collections.sort(armies);
+            armies.add(new Army(this._owner, numberOfOwnerShips));
             //Draw armies
             float actRadius = this._shape.width / 2;
             for (Army army : armies) {

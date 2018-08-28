@@ -18,7 +18,7 @@ public class Screenshoter {
 
     public Screenshoter(int screenX, int screenY) {
         this._screenX = screenX - 11;
-        this._screenY = screenY - 45;
+        this._screenY = screenY - 11;
         Dimension screen = Toolkit.getDefaultToolkit().getScreenSize();
         this._offsetX = screen.width / 2 + 66;
         this._offsetY = 63;

@@ -20,7 +20,7 @@ class Window extends JFrame {
     Window() {
         super("Project-Domination");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setPreferredSize(new Dimension(_SCREEN_WIDTH + 15, _SCREEN_HEIGHT + 35));
+        setPreferredSize(new Dimension(_SCREEN_WIDTH + 115, _SCREEN_HEIGHT + 135));
         setLayout(new BorderLayout());
         add(_drawPanel, BorderLayout.CENTER);
         pack();
