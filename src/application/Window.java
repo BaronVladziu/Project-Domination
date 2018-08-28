@@ -8,7 +8,7 @@ import java.awt.*;
 
 class Window extends JFrame {
 
-    private final boolean _IS_SCREENSHOTING_ON = true;
+    private final boolean _IS_SCREENSHOTING_ON = false;
     private final int _SCREEN_WIDTH = 1000;
     private final int _SCREEN_HEIGHT = 1000;
 
@@ -26,7 +26,7 @@ class Window extends JFrame {
         pack();
         setVisible(true);
         _map.randomize();
-        _map.print();
+        //_map.print();
     }
 
     void loop() {

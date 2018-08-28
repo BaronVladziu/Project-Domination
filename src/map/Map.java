@@ -31,31 +31,28 @@ public class Map {
     public Map (int mapWidth, int mapHeight) {
         this._MAP_WIDTH = mapWidth;
         this._MAP_HEIGHT = mapHeight;
-        for (int i = 0; i < this._edges.length; i++) {
-            for (int j = 0; j < this._edges[i].length; j++) {
-                if (j > i) {
-                    this._edges[i][j] = new Tunnel(1, this._vertices[i], this._vertices[j]);
-                } else if (i > j){
-                    this._edges[i][j] = this._edges[j][i];
-                }
-            }
-        }
-//        for (int i = 0; i < this._vertices.length; i++) {
-//            this._vertices[i] = new Planet(_NUMBER_OF_PLAYERS, _MAP_WIDTH, _MAP_HEIGHT);
-//        }
     }
 
     final Tunnel getEdge(int from, int to) { return this._edges[from][to]; }
     final Planet getVertex(int id) { return this._vertices[id]; }
 
     public void randomize() {
-        this._numberOfPassedTurns = 0;
         //Null edges
         for (int i = 0; i < this._edges.length; i++) {
             for (int j = 0; j < this._edges[i].length; j++) {
                 this._edges[i][j] = null;
             }
         }
+
+        //Null planets
+        for (int i = 0; i < this._vertices.length; i++) {
+            this._vertices[i] = null;
+        }
+
+        //Reset rest of objects
+        this._ships.clear();
+        this._numberOfPassedTurns = 0;
+
         //Calculate vertex position ranges
         double alpha = 2*PI/_NUMBER_OF_PLAYERS;
         double maxPlanetPositionRadius = Math.min((double)_MAP_WIDTH/2, (double)_MAP_HEIGHT/2) - Planet._MAX_PLANET_SIZE;
@@ -65,6 +62,7 @@ public class Map {
         } else {
             minPlanetPositionRadius = Planet._MAX_PLANET_SIZE;
         }
+
         //Generate vertices
         int numberOfGeneratedVertices = 0;
         for (int v = 0; v < _MAX_NUMBER_OF_VERTICES_PER_PLAYER; v++) {
@@ -107,11 +105,12 @@ public class Map {
                         (float)((double)_MAP_HEIGHT/2 - (double)distanceFromMapCenter*Math.sin(gamma)));
             }
         }
+
         //Set motherworlds
         for (int j = 0; j < _NUMBER_OF_PLAYERS; j++) {
             this._vertices[j].setOwner(j);
         }
-        System.out.println("Generated " + Integer.toString(numberOfGeneratedVertices) + " planets.");
+//        System.out.println("Generated " + Integer.toString(numberOfGeneratedVertices) + " planets.");
 
         //Calculate distances
         float[][] distances = calculateVertexDistances();
@@ -125,7 +124,6 @@ public class Map {
                 }
             }
         }
-        //Collections.sort(edgesForSorting);
 
         int[] subgraphIDs = new int[_MAX_NUMBER_OF_VERTICES];
         for (int i = 0; i < _MAX_NUMBER_OF_VERTICES; i++) {
@@ -168,6 +166,7 @@ public class Map {
             }
             edgesForSorting.poll();
         }
+
         //Connect planets
         for (int i = 0; i < _MAX_NUMBER_OF_VERTICES; i++) {
             if (this._vertices[i] != null) {
@@ -289,13 +288,6 @@ public class Map {
                     visitedVerticesCounter);
             actSubgraphID++;
         }
-
-        System.out.println("SubgraphIDs:");
-        for (int i = 0; i < _MAX_NUMBER_OF_VERTICES; i++) {
-            System.out.print(subgraphIDs[i]);
-            System.out.print('\t');
-        }
-        System.out.print('\n');
     }
 
     private int depthFirstSearch(int[] subgraphIDs, int verticeID, int actSubgraphID, int visitedVerticesCounter) {
@@ -324,16 +316,9 @@ public class Map {
                     vertex.update(this._ships);
                 }
             }
-            //Logs
-            for (Planet vertex : this._vertices) {
-                if (vertex != null) {
-                    System.out.print(vertex.getNumberOfShips());
-                    System.out.print('\t');
-                }
-            }
-            System.out.print('\n');
         } else {
-            System.out.println("--- Game ended ---");
+            this._ai.improvePlayers(this._vertices);
+            this.randomize();
         }
     }
 

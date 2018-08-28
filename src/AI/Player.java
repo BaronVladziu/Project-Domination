@@ -4,16 +4,21 @@ import map.Planet;
 
 public class Player {
 
-    private final static int _NUMBER_OF_LAYERS = 10;
-    private final static int _NUMBER_OF_GENES_IN_LAYER = 3;
+    final static int _NUMBER_OF_GENES_IN_LAYER = 3;
 
-    private DNA _dna;
+    private Participant _participant;
     private NeuralNetwork _neuralNetwork;
 
-    Player() {
-        this._dna = new DNA(_NUMBER_OF_LAYERS, _NUMBER_OF_GENES_IN_LAYER);
-        this._neuralNetwork = new NeuralNetwork(this._dna);
+    Player(int numberOfLayers) {
+        this._participant = new Participant(new DNA(numberOfLayers, _NUMBER_OF_GENES_IN_LAYER));
+        this._neuralNetwork = new NeuralNetwork(this._participant.getDNA());
     }
+
+    void setParticipant(final Participant participant) {
+        this._participant = participant;
+        this._neuralNetwork = new NeuralNetwork(this._participant.getDNA());
+    }
+    final Participant getParticipant() { return this._participant; }
 
     int chooseTunnel(int playerID, Planet shipLocation) {
         int bestTunnel = -1;
