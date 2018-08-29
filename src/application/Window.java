@@ -8,14 +8,13 @@ import java.awt.*;
 
 class Window extends JFrame {
 
-    private final boolean _IS_SCREENSHOTING_ON = false;
     private final int _SCREEN_WIDTH = 1000;
     private final int _SCREEN_HEIGHT = 1000;
 
     private final Screenshoter _screenshoter = new Screenshoter(_SCREEN_WIDTH, _SCREEN_HEIGHT);
 
     private Map _map = new Map(_SCREEN_WIDTH, _SCREEN_HEIGHT);
-    private DrawingSheet _drawPanel = new DrawingSheet(_SCREEN_WIDTH, _SCREEN_HEIGHT, this._map, _IS_SCREENSHOTING_ON);
+    private DrawingSheet _drawPanel = new DrawingSheet(_SCREEN_WIDTH, _SCREEN_HEIGHT, this._map);
 
     Window() {
         super("Project-Domination");
@@ -31,9 +30,9 @@ class Window extends JFrame {
 
     void loop() {
         while (true) {
-            _map.update();
-            _drawPanel.repaint();
-            if (_IS_SCREENSHOTING_ON) {
+            this._map.update();
+            this._drawPanel.repaint();
+            if (this._map.isScreenshootingEnabled()) {
                 _screenshoter.getScreenshot();
             }
         }

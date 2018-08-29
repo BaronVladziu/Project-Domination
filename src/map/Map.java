@@ -10,14 +10,14 @@ import static java.lang.Math.PI;
 
 public class Map {
 
-    private final static int _MAX_NUMBER_OF_VERTICES_PER_PLAYER = 100;
+    private final static int _MAX_NUMBER_OF_VERTICES_PER_PLAYER = 30;
     private final static int _NUMBER_OF_PLAYERS = 6;
     private final static int _MAX_NUMBER_OF_VERTICES = _MAX_NUMBER_OF_VERTICES_PER_PLAYER * _NUMBER_OF_PLAYERS;
     private final static float _UNIT_TUNNEL_LENGTH = 4.f;
     private final static Random _GENERATOR = new Random();
     private final static int _MAX_SEARCH_ITERATIONS = 1000;
     private final static float _GRAVITY_STRENGTH = 0.01f;
-    private final static int _MAX_NUMBER_OF_TURNS = 700;
+    private final static int _MAX_NUMBER_OF_TURNS = 500;
 
     private final int _MAP_WIDTH;
     private final int _MAP_HEIGHT;
@@ -25,6 +25,7 @@ public class Map {
     private Tunnel[][] _edges = new Tunnel[_MAX_NUMBER_OF_VERTICES][_MAX_NUMBER_OF_VERTICES];
     private Planet[] _vertices = new Planet[_MAX_NUMBER_OF_VERTICES];
     private Vector<Ship> _ships = new Vector<>();
+    private Vector<PlanetExplosion> _planetExplosions = new Vector<>();
     private AI _ai = new AI(_NUMBER_OF_PLAYERS);
     private int _numberOfPassedTurns;
 
@@ -35,6 +36,10 @@ public class Map {
 
     final Tunnel getEdge(int from, int to) { return this._edges[from][to]; }
     final Planet getVertex(int id) { return this._vertices[id]; }
+
+    public boolean isScreenshootingEnabled() {
+        return (this._ai.getMatchNumber() == 1);
+    }
 
     public void randomize() {
         //Null edges
@@ -67,7 +72,7 @@ public class Map {
         int numberOfGeneratedVertices = 0;
         for (int v = 0; v < _MAX_NUMBER_OF_VERTICES_PER_PLAYER; v++) {
             //Generate vertex for first player
-            this._vertices[_NUMBER_OF_PLAYERS*v] = new Planet(_NUMBER_OF_PLAYERS, _MAP_WIDTH, _MAP_HEIGHT);
+            this._vertices[_NUMBER_OF_PLAYERS*v] = new Planet(_NUMBER_OF_PLAYERS, _MAP_WIDTH, _MAP_HEIGHT, _NUMBER_OF_PLAYERS*v);
             double distanceFromMapCenter;
             int numberOfSearchIterations = 0;
             do {
@@ -99,10 +104,10 @@ public class Map {
 
             for (int j = 1; j < _NUMBER_OF_PLAYERS; j++) {
                 double gamma = beta + j*alpha;
-                this._vertices[_NUMBER_OF_PLAYERS*v + j] = new Planet(_NUMBER_OF_PLAYERS, _MAP_WIDTH, _MAP_HEIGHT);
+                this._vertices[_NUMBER_OF_PLAYERS*v + j] = new Planet(_NUMBER_OF_PLAYERS, _MAP_WIDTH, _MAP_HEIGHT, _NUMBER_OF_PLAYERS*v + j);
                 this._vertices[_NUMBER_OF_PLAYERS*v + j].randomize(_GENERATOR);
-                this._vertices[_NUMBER_OF_PLAYERS*v + j].setPosition((float)((double)_MAP_WIDTH/2 - (double)distanceFromMapCenter*Math.cos(gamma)),
-                        (float)((double)_MAP_HEIGHT/2 - (double)distanceFromMapCenter*Math.sin(gamma)));
+                this._vertices[_NUMBER_OF_PLAYERS*v + j].setPosition((float)((double)_MAP_WIDTH/2 - distanceFromMapCenter*Math.cos(gamma)),
+                        (float)((double)_MAP_HEIGHT/2 - distanceFromMapCenter*Math.sin(gamma)));
             }
         }
 
@@ -110,7 +115,6 @@ public class Map {
         for (int j = 0; j < _NUMBER_OF_PLAYERS; j++) {
             this._vertices[j].setOwner(j);
         }
-//        System.out.println("Generated " + Integer.toString(numberOfGeneratedVertices) + " planets.");
 
         //Calculate distances
         float[][] distances = calculateVertexDistances();
@@ -132,6 +136,7 @@ public class Map {
         int numberOfZeros = 1;
 
         while (numberOfZeros < numberOfGeneratedVertices) { //Minimum spanning tree-like
+            //TODO: Something's wrong when (numberOfGeneratedVertices == _MAX_NUMBER_OF_VERTICES)
             if (this._edges[edgesForSorting.peek()._vertex1][edgesForSorting.peek()._vertex2] == null) {
                 for (int p = 0; p < _NUMBER_OF_PLAYERS; p++) {
                     int v1 = edgesForSorting.peek()._vertex1;
@@ -189,6 +194,9 @@ public class Map {
                 this._vertices[i].setTunnels(tunnels_from_act_planet);
             }
         }
+
+        //Give AI matrix of shortest paths
+        this._ai.setPlanetsAndShortestPathsMatrix(this._vertices, calculateShortestPathsMatrix(numberOfGeneratedVertices));
     }
 
     private boolean ifVertexCanCollide(int v) {
@@ -196,7 +204,7 @@ public class Map {
             if (i != v && this._vertices[i] != null) {
                 float dx = this._vertices[i].getX() - this._vertices[v].getX();
                 float dy = this._vertices[i].getY() - this._vertices[v].getY();
-                if (Math.sqrt(dx*dx + dy*dy) < Planet._MAX_PLANET_SIZE + Planet._MAX_PLANET_SIZE) {
+                if (Math.sqrt(dx*dx + dy*dy) < 1.2*Planet._MAX_PLANET_SIZE + 1.2*Planet._MAX_PLANET_SIZE) {
                     return true;
                 }
             }
@@ -219,6 +227,33 @@ public class Map {
 
     private boolean ifCollide(int a, int b, float[][] distances) {
         return distances[a][b] < this._vertices[a].getPlanetSize() + this._vertices[b].getPlanetSize();
+    }
+
+    private float[][] calculateShortestPathsMatrix(int numberOfGeneratedVertices) {
+        //Initialize matrix
+        float[][] matrix = new float[numberOfGeneratedVertices][numberOfGeneratedVertices];
+        System.out.print('\n');
+        for (int i = 0; i < numberOfGeneratedVertices; i++) {
+            for (int j = 0; j < numberOfGeneratedVertices; j++) {
+                if (this._edges[i][j] != null) {
+                    matrix[i][j] = this._edges[i][j].getLength();
+                } else {
+                    matrix[i][j] = Float.POSITIVE_INFINITY;
+                }
+            }
+        }
+        //Floyd-Warshall
+        for (int a = 0; a < numberOfGeneratedVertices; a++) {
+            for (int b = 0; b < numberOfGeneratedVertices; b++) {
+                for (int c = 0; c < numberOfGeneratedVertices; c++) {
+                    float dist = matrix[b][a] + matrix[a][c];
+                    if (matrix[b][c] > dist) {
+                        matrix[b][c] = dist;
+                    }
+                }
+            }
+        }
+        return matrix;
     }
 
     private float[][] calculateVertexDistances() {
@@ -306,6 +341,15 @@ public class Map {
     public void update() {
         if (this._numberOfPassedTurns < _MAX_NUMBER_OF_TURNS) {
             this._numberOfPassedTurns++;
+            //Update planet explosions
+            Vector<PlanetExplosion> deadExplosions = new Vector<>();
+            for (PlanetExplosion exp : this._planetExplosions) {
+                exp.update();
+                if (exp.isDead()) {
+                    deadExplosions.add(exp);
+                }
+            }
+            this._planetExplosions.removeAll(deadExplosions);
             //Update ships
             for (Ship ship : this._ships) {
                 ship.update(_ai);
@@ -313,7 +357,9 @@ public class Map {
             //Update planets
             for (Planet vertex : this._vertices) {
                 if (vertex != null) {
-                    vertex.update(this._ships);
+                    if (vertex.updateAndCheckIfOwnerChanged(this._ships)) {
+                        this._planetExplosions.add(new PlanetExplosion(vertex));
+                    }
                 }
             }
         } else {
@@ -348,6 +394,10 @@ public class Map {
     }
 
     public void draw(Graphics2D g, PlayerColors playerColors) {
+        //Draw planet explosions
+        for (int i = 0; i < this._planetExplosions.size(); i++) {
+            this._planetExplosions.get(i).draw(g, playerColors);
+        }
         //Draw tunnels
         g.setColor(Color.WHITE);
         for (int i = 0; i < this._edges.length; i++) {
@@ -369,6 +419,11 @@ public class Map {
                 vertex.draw(g, playerColors, _GENERATOR);
             }
         }
+        //Draw numbers
+        g.setColor(Color.WHITE);
+        g.drawString("Generation " + Integer.toString(this._ai.getGenerationNumber()), 10, 20);
+        g.drawString("Match " + Integer.toString(this._ai.getMatchNumber()), 10, 40);
+        g.drawString("Turn " + Integer.toString(this._numberOfPassedTurns) + " / " + Integer.toString(_MAX_NUMBER_OF_TURNS), 10, 60);
     }
 
 }

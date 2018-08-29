@@ -15,15 +15,16 @@ public class Planet {
     private final static int _MAX_SIZE = 6;
     private final static int _FIGHT_SCALING_FACTOR = 20; //The lower the faster are fights
     private final static int _PLANET_SIZE_FACTOR = 5;
-    private final static int _PLANET_SIZE_CONSTANT = 15;
+    private final static int _PLANET_SIZE_CONSTANT = 20;
 
     final static int _MAX_PLANET_SIZE = _MAX_SIZE*_PLANET_SIZE_FACTOR + _PLANET_SIZE_CONSTANT;
 
     private final int _MAP_WIDTH;
     private final int _MAP_HEIGHT;
     private final Explosion _explosion = new Explosion(this);
+    private final int _ID;
 
-    private int _size;
+    private int _size = 0;
     private Ellipse2D.Float _shape = new Ellipse2D.Float(0,0,
             this._size * _PLANET_SIZE_FACTOR + _PLANET_SIZE_CONSTANT,
             this._size * _PLANET_SIZE_FACTOR + _PLANET_SIZE_CONSTANT);
@@ -32,10 +33,10 @@ public class Planet {
     private Vector<ArrayList<Ship>> _shipsByPlayer;
     private int _killedInLastFight = 0;
 
-    Planet(int numberOfPlayers, int mapWidth, int mapHeight) {
+    Planet(int numberOfPlayers, int mapWidth, int mapHeight, int planetID) {
         this._MAP_WIDTH = mapWidth;
         this._MAP_HEIGHT = mapHeight;
-        this._size = 0;
+        this._ID = planetID;
         this._shipsByPlayer = new Vector<>();
         for (int i = 0; i < numberOfPlayers; i++) {
             this._shipsByPlayer.add(new ArrayList<>());
@@ -54,6 +55,7 @@ public class Planet {
     final float getPlanetSize() { return this._shape.height; }
     public final int getOwner() { return this._owner; }
     void setOwner(int owner) { this._owner = owner; }
+    public final int getID() { return this._ID; }
     final float getX() { return this._shape.x + this._shape.width / 2; }
     final float getY() { return this._shape.y + this._shape.height / 2; }
     final float getRadius() { return this._shape.height / 2; }
@@ -69,7 +71,6 @@ public class Planet {
     public final int getNumberOfShips(int playerID) {
         return this._shipsByPlayer.get(playerID).size();
     }
-
     void setPosition(float x, float y) {
         _shape.x = x;
         _shape.y = y;
@@ -96,7 +97,7 @@ public class Planet {
         this._shape.y = generator.nextFloat() * (this._MAP_HEIGHT - 2*_MAX_PLANET_SIZE) + _MAX_PLANET_SIZE - this._shape.height/2;
     }
 
-    void update(Vector<Ship> ships) {
+    boolean updateAndCheckIfOwnerChanged(Vector<Ship> ships) {
         //Execute fights
         int sum = 0;
         int numberOfFightingPlayers = 0;
@@ -129,7 +130,11 @@ public class Planet {
             }
         }
         //Update owner
+        boolean ifOwnerChanged = false;
         if (numberOfFightingPlayers == 1) {
+            if (this._owner != lastFightingPlayer) {
+                ifOwnerChanged = true;
+            }
             this._owner = lastFightingPlayer;
         }
         //Spawn new ship
@@ -137,6 +142,7 @@ public class Planet {
             ships.add(new Ship(this._owner, this));
             this._shipsByPlayer.get(this._owner).add(ships.get(ships.size() - 1));
         }
+        return ifOwnerChanged;
     }
 
     void addShip(Ship ship) {
