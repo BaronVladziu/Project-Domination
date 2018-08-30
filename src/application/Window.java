@@ -32,9 +32,9 @@ class Window extends JFrame {
         while (true) {
             this._map.update();
             this._drawPanel.repaint();
-            if (this._map.isScreenshootingEnabled()) {
-                _screenshoter.getScreenshot();
-            }
+//            if (this._map.isScreenshootingEnabled()) {
+//                _screenshoter.getScreenshot();
+//            }
         }
     }
 
